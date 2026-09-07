@@ -1,0 +1,228 @@
+/* -------------------------
+   GENERAL
+------------------------- */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+
+/* -------------------------
+   HEADER
+------------------------- */
+
+header {
+    background: #111827;
+    color: white;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 32px;
+}
+
+header p {
+    margin-top: 10px;
+    color: #d1d5db;
+}
+
+
+/* -------------------------
+   MAIN
+------------------------- */
+
+main {
+    max-width: 1000px;
+    margin: auto;
+    padding: 30px 20px;
+}
+
+
+/* -------------------------
+   API SECTION
+------------------------- */
+
+.api-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.api-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.api-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.api-input-row input {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+}
+
+.api-input-row button {
+    padding: 12px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+.api-input-row button:hover {
+    background: #1d4ed8;
+}
+
+.small-text {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+
+/* -------------------------
+   STATUS
+------------------------- */
+
+#status {
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.loading {
+    color: #2563eb;
+}
+
+.error {
+    color: #dc2626;
+}
+
+
+/* -------------------------
+   GAME CARD
+------------------------- */
+
+.game-card {
+    background: white;
+    margin-bottom: 20px;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.game-date {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+
+/* -------------------------
+   TEAMS
+------------------------- */
+
+.matchup {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    align-items: center;
+    text-align: center;
+}
+
+.team {
+    padding: 15px;
+}
+
+.team-name {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.probability {
+    font-size: 32px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.vs {
+    font-weight: bold;
+    color: #9ca3af;
+}
+
+
+/* -------------------------
+   RECOMMENDATION
+------------------------- */
+
+.recommendation {
+    margin-top: 25px;
+    padding: 15px;
+    background: #ecfdf5;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.recommendation strong {
+    font-size: 20px;
+}
+
+
+/* -------------------------
+   DETAILS
+------------------------- */
+
+.details {
+    margin-top: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+
+/* -------------------------
+   FOOTER
+------------------------- */
+
+footer {
+    text-align: center;
+    padding: 30px;
+    color: #6b7280;
+}
+
+
+/* -------------------------
+   MOBILE
+------------------------- */
+
+@media (max-width: 600px) {
+
+    .api-input-row {
+        flex-direction: column;
+    }
+
+    .matchup {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .vs {
+        margin: 5px 0;
+    }
+
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NFL Pick Assistant</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>NFL Pick Assistant</h1>
+        <p>Consensus predictions based on sportsbook moneylines</p>
+    </header>
+
+
+    <main>
+
+        <!-- API SETTINGS -->
+        <section class="api-section">
+
+            <label for="apiKey">
+                The Odds API Key
+            </label>
+
+            <div class="api-input-row">
+
+                <input
+                    type="password"
+                    id="apiKey"
+                    placeholder="Paste your API key here"
+                >
+
+                <button id="loadOddsButton">
+                    Get NFL Odds
+                </button>
+
+            </div>
+
+            <p class="small-text">
+                Your API key is only used in your browser for this session.
+            </p>
+
+        </section>
+
+
+        <!-- STATUS -->
+        <div id="status"></div>
+
+
+        <!-- RESULTS -->
+        <section id="results"></section>
+
+
+    </main>
+
+
+    <footer>
+        <p>
+            NFL Pick Assistant
+        </p>
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
