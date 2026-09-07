@@ -37,6 +37,31 @@ header p {
 
 
 /* -------------------------
+   NAVIGATION
+------------------------- */
+
+nav {
+    margin-top: 20px;
+}
+
+nav a {
+    display: inline-block;
+    margin: 0 5px;
+    padding: 8px 14px;
+    border-radius: 6px;
+
+    color: white;
+    background: #374151;
+
+    text-decoration: none;
+}
+
+nav a:hover {
+    background: #4b5563;
+}
+
+
+/* -------------------------
    MAIN
 ------------------------- */
 
@@ -55,7 +80,7 @@ main {
     background: white;
     padding: 25px;
     border-radius: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .api-section label {
@@ -71,25 +96,68 @@ main {
 
 .api-input-row input {
     flex: 1;
+
     padding: 12px;
+
     font-size: 16px;
+
     border: 1px solid #d1d5db;
     border-radius: 6px;
 }
 
-.api-input-row button {
+
+/* -------------------------
+   BUTTONS
+------------------------- */
+
+button {
     padding: 12px 20px;
+
     font-size: 16px;
+
     border: none;
     border-radius: 6px;
+
     background: #2563eb;
     color: white;
+
     cursor: pointer;
 }
 
-.api-input-row button:hover {
+button:hover:not(:disabled) {
     background: #1d4ed8;
 }
+
+button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+
+/* -------------------------
+   COPY SECTION
+------------------------- */
+
+.copy-section {
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 10px;
+
+    margin-bottom: 30px;
+
+    text-align: center;
+}
+
+.copy-section .small-text {
+    margin-bottom: 0;
+}
+
+
+/* -------------------------
+   SMALL TEXT
+------------------------- */
 
 .small-text {
     font-size: 13px;
@@ -114,6 +182,10 @@ main {
     color: #dc2626;
 }
 
+.success {
+    color: #059669;
+}
+
 
 /* -------------------------
    GAME CARD
@@ -121,15 +193,21 @@ main {
 
 .game-card {
     background: white;
+
     margin-bottom: 20px;
+
     padding: 25px;
+
     border-radius: 10px;
 }
 
 .game-date {
     text-align: center;
+
     color: #6b7280;
+
     font-size: 14px;
+
     margin-bottom: 20px;
 }
 
@@ -140,8 +218,11 @@ main {
 
 .matchup {
     display: grid;
+
     grid-template-columns: 1fr 80px 1fr;
+
     align-items: center;
+
     text-align: center;
 }
 
@@ -156,12 +237,15 @@ main {
 
 .probability {
     font-size: 32px;
+
     font-weight: bold;
+
     margin-top: 10px;
 }
 
 .vs {
     font-weight: bold;
+
     color: #9ca3af;
 }
 
@@ -172,9 +256,13 @@ main {
 
 .recommendation {
     margin-top: 25px;
+
     padding: 15px;
+
     background: #ecfdf5;
+
     border-radius: 8px;
+
     text-align: center;
 }
 
@@ -189,9 +277,78 @@ main {
 
 .details {
     margin-top: 20px;
+
     text-align: center;
+
     color: #6b7280;
+
     font-size: 14px;
+}
+
+
+/* -------------------------
+   LATEST PICKS
+------------------------- */
+
+.picks-header {
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 10px;
+
+    margin-bottom: 20px;
+
+    text-align: center;
+}
+
+.picks-header h2 {
+    margin-top: 0;
+}
+
+.picks-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    background: white;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.picks-table th,
+.picks-table td {
+    padding: 14px;
+
+    text-align: left;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.picks-table th {
+    background: #f9fafb;
+
+    font-weight: bold;
+}
+
+.pick-team {
+    font-weight: bold;
+}
+
+.pick-probability {
+    font-weight: bold;
+}
+
+.last-updated {
+    margin-top: 20px;
+
+    color: #6b7280;
+
+    font-size: 14px;
+
+    text-align: center;
 }
 
 
@@ -201,7 +358,9 @@ main {
 
 footer {
     text-align: center;
+
     padding: 30px;
+
     color: #6b7280;
 }
 
@@ -218,6 +377,7 @@ footer {
 
     .matchup {
         grid-template-columns: 1fr;
+
         gap: 10px;
     }
 
@@ -225,4 +385,12 @@ footer {
         margin: 5px 0;
     }
 
+    .picks-table {
+        font-size: 14px;
+    }
+
+    .picks-table th,
+    .picks-table td {
+        padding: 10px 7px;
+    }
 }

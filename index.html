@@ -11,61 +11,79 @@
 
 <body>
 
-    <header>
-        <h1>NFL Pick Assistant</h1>
-        <p>Consensus predictions based on sportsbook moneylines</p>
-    </header>
+<header>
+    <h1>NFL Pick Assistant</h1>
+    <p>Consensus predictions based on sportsbook moneylines</p>
+
+    <nav>
+        <a href="index.html">Get Odds</a>
+        <a href="latest-picks.html">Latest Picks</a>
+    </nav>
+</header>
 
 
-    <main>
+<main>
 
-        <!-- API SETTINGS -->
-        <section class="api-section">
+    <!-- API SETTINGS -->
+    <section class="api-section">
 
-            <label for="apiKey">
-                The Odds API Key
-            </label>
+        <label for="apiKey">
+            The Odds API Key
+        </label>
 
-            <div class="api-input-row">
+        <div class="api-input-row">
 
-                <input
-                    type="password"
-                    id="apiKey"
-                    placeholder="Paste your API key here"
-                >
+            <input
+                type="password"
+                id="apiKey"
+                placeholder="Paste your API key here"
+            >
 
-                <button id="loadOddsButton">
-                    Get NFL Odds
-                </button>
+            <button id="loadOddsButton">
+                Get NFL Odds
+            </button>
 
-            </div>
+        </div>
 
-            <p class="small-text">
-                Your API key is only used in your browser for this session.
-            </p>
-
-        </section>
-
-
-        <!-- STATUS -->
-        <div id="status"></div>
-
-
-        <!-- RESULTS -->
-        <section id="results"></section>
-
-
-    </main>
-
-
-    <footer>
-        <p>
-            NFL Pick Assistant
+        <p class="small-text">
+            Your API key is only used in your browser for this session.
         </p>
-    </footer>
+
+    </section>
 
 
-    <script src="script.js"></script>
+    <!-- STATUS -->
+    <div id="status"></div>
+
+
+    <!-- COPY PICKS -->
+    <section class="copy-section">
+
+        <button id="copyPicksButton" disabled>
+            Copy Picks for Latest Picks Page
+        </button>
+
+        <p class="small-text">
+            Load the odds first, then copy the results for your
+            Latest Picks page.
+        </p>
+
+    </section>
+
+
+    <!-- RESULTS -->
+    <section id="results"></section>
+
+
+</main>
+
+
+<footer>
+    <p>NFL Pick Assistant</p>
+</footer>
+
+
+<script src="script.js"></script>
 
 </body>
 </html>

@@ -4,16 +4,21 @@
 
 
 // API endpoint
+
 const API_BASE_URL =
     "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds";
 
 
 // HTML elements
+
 const apiKeyInput =
     document.getElementById("apiKey");
 
 const loadOddsButton =
     document.getElementById("loadOddsButton");
+
+const copyPicksButton =
+    document.getElementById("copyPicksButton");
 
 const resultsContainer =
     document.getElementById("results");
@@ -22,13 +27,23 @@ const statusContainer =
     document.getElementById("status");
 
 
+// Store the current results
+
+let currentPicks = [];
+
+
 // =====================================
-// BUTTON CLICK
+// BUTTON EVENTS
 // =====================================
 
 loadOddsButton.addEventListener(
     "click",
     loadOdds
+);
+
+copyPicksButton.addEventListener(
+    "click",
+    copyPicks
 );
 
 
@@ -43,6 +58,7 @@ async function loadOdds() {
 
 
     // Check API key
+
     if (!apiKey) {
 
         showStatus(
@@ -55,7 +71,12 @@ async function loadOdds() {
 
 
     // Clear previous results
+
     resultsContainer.innerHTML = "";
+
+    currentPicks = [];
+
+    copyPicksButton.disabled = true;
 
 
     showStatus(
@@ -73,6 +94,7 @@ async function loadOdds() {
     try {
 
         // Build API URL
+
         const url =
             `${API_BASE_URL}` +
             `?apiKey=${encodeURIComponent(apiKey)}` +
@@ -82,11 +104,13 @@ async function loadOdds() {
 
 
         // Fetch odds
+
         const response =
             await fetch(url);
 
 
         // Handle API errors
+
         if (!response.ok) {
 
             const errorText =
@@ -95,16 +119,17 @@ async function loadOdds() {
             throw new Error(
                 `API error: ${response.status} ${errorText}`
             );
-
         }
 
 
         // Convert response to JSON
+
         const games =
             await response.json();
 
 
         // Display results
+
         displayGames(games);
 
 
@@ -137,7 +162,6 @@ async function loadOdds() {
             "Get NFL Odds";
 
     }
-
 }
 
 
@@ -163,10 +187,21 @@ function displayGames(games) {
 
 
         // Skip games with no usable odds
+
         if (!result) {
             return;
         }
 
+
+        // Save result for Copy Picks
+
+        currentPicks.push({
+            game: game,
+            result: result
+        });
+
+
+        // Create game card
 
         const gameCard =
             createGameCard(
@@ -181,6 +216,14 @@ function displayGames(games) {
 
     });
 
+
+    // Enable Copy button
+
+    if (currentPicks.length > 0) {
+
+        copyPicksButton.disabled = false;
+
+    }
 }
 
 
@@ -203,9 +246,11 @@ function calculateConsensus(game) {
 
 
     // Go through every sportsbook
+
     game.bookmakers.forEach(bookmaker => {
 
         // Find moneyline market
+
         const h2hMarket =
             bookmaker.markets.find(
                 market => market.key === "h2h"
@@ -218,6 +263,7 @@ function calculateConsensus(game) {
 
 
         // Find both teams
+
         const homeOutcome =
             h2hMarket.outcomes.find(
                 outcome =>
@@ -236,7 +282,9 @@ function calculateConsensus(game) {
         }
 
 
-        // Convert American odds to probabilities
+        // Convert American odds
+        // to raw probabilities
+
         const homeRawProbability =
             americanOddsToProbability(
                 homeOutcome.price
@@ -248,7 +296,8 @@ function calculateConsensus(game) {
             );
 
 
-        // Remove vig by normalizing probabilities
+        // Remove sportsbook vig
+
         const total =
             homeRawProbability +
             awayRawProbability;
@@ -273,16 +322,19 @@ function calculateConsensus(game) {
 
 
     // No sportsbook data
+
     if (
         homeProbabilities.length === 0 ||
         awayProbabilities.length === 0
     ) {
+
         return null;
+
     }
 
 
     // Use MEDIAN instead of average
-    // This reduces the impact of outliers
+
     const homeProbability =
         median(homeProbabilities);
 
@@ -291,7 +343,9 @@ function calculateConsensus(game) {
 
 
     // Pick winner
+
     let recommendedTeam;
+
     let confidence;
 
 
@@ -306,7 +360,9 @@ function calculateConsensus(game) {
         confidence =
             homeProbability;
 
-    } else {
+    }
+
+    else {
 
         recommendedTeam =
             awayTeam;
@@ -331,12 +387,11 @@ function calculateConsensus(game) {
             homeProbabilities.length
 
     };
-
 }
 
 
 // =====================================
-// AMERICAN ODDS → PROBABILITY
+// AMERICAN ODDS -> PROBABILITY
 // =====================================
 
 function americanOddsToProbability(odds) {
@@ -384,6 +439,7 @@ function median(numbers) {
 
 
     // Odd number
+
     if (
         sorted.length % 2 !== 0
     ) {
@@ -394,6 +450,7 @@ function median(numbers) {
 
 
     // Even number
+
     return (
         sorted[middle - 1] +
         sorted[middle]
@@ -420,6 +477,7 @@ function createGameCard(
 
 
     // Format game date
+
     const gameDate =
         new Date(
             game.commence_time
@@ -442,7 +500,7 @@ function createGameCard(
     card.innerHTML = `
 
         <div class="game-date">
-            ${formattedDate}
+            ${escapeHtml(formattedDate)}
         </div>
 
 
@@ -451,7 +509,7 @@ function createGameCard(
             <div class="team">
 
                 <div class="team-name">
-                    ${game.away_team}
+                    ${escapeHtml(game.away_team)}
                 </div>
 
                 <div class="probability">
@@ -471,7 +529,7 @@ function createGameCard(
             <div class="team">
 
                 <div class="team-name">
-                    ${game.home_team}
+                    ${escapeHtml(game.home_team)}
                 </div>
 
                 <div class="probability">
@@ -492,7 +550,7 @@ function createGameCard(
             <br>
 
             <strong>
-                ${result.recommendedTeam}
+                ${escapeHtml(result.recommendedTeam)}
             </strong>
 
             <br>
@@ -500,7 +558,8 @@ function createGameCard(
             ${formatPercent(
                 result.confidence
             )}
-                estimated win probability
+
+            estimated win probability
 
         </div>
 
@@ -522,10 +581,190 @@ function createGameCard(
 
 
 // =====================================
+// COPY PICKS
+// =====================================
+
+async function copyPicks() {
+
+    if (currentPicks.length === 0) {
+        return;
+    }
+
+
+    const now =
+        new Date();
+
+
+    const updated =
+        now.toLocaleString(
+            "en-US",
+            {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit"
+            }
+        );
+
+
+    // Create table rows
+
+    const rows =
+        currentPicks.map(
+            ({ game, result }) => {
+
+                const gameDate =
+                    new Date(
+                        game.commence_time
+                    );
+
+
+                const date =
+                    gameDate.toLocaleDateString(
+                        "en-US",
+                        {
+                            month: "short",
+                            day: "numeric"
+                        }
+                    );
+
+
+                const matchup =
+                    `${game.away_team} vs ${game.home_team}`;
+
+
+                return `
+                    <tr>
+
+                        <td>
+                            ${escapeHtml(date)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(matchup)}
+                        </td>
+
+                        <td class="pick-team">
+                            ${escapeHtml(
+                                result.recommendedTeam
+                            )}
+                        </td>
+
+                        <td class="pick-probability">
+                            ${formatPercent(
+                                result.confidence
+                            )}
+                        </td>
+
+                    </tr>
+                `;
+
+            }
+        ).join("");
+
+
+    // Create HTML that can be pasted
+    // directly into latest-picks.html
+
+    const html = `
+
+<div class="picks-header">
+
+    <h2>
+        Latest NFL Picks
+    </h2>
+
+    <p>
+        Consensus sportsbook predictions
+    </p>
+
+</div>
+
+
+<table class="picks-table">
+
+    <thead>
+
+        <tr>
+
+            <th>
+                Date
+            </th>
+
+            <th>
+                Matchup
+            </th>
+
+            <th>
+                Pick
+            </th>
+
+            <th>
+                Win Probability
+            </th>
+
+        </tr>
+
+    </thead>
+
+
+    <tbody>
+
+${rows}
+
+    </tbody>
+
+</table>
+
+
+<p class="last-updated">
+
+    Last updated:
+    ${escapeHtml(updated)}
+
+</p>
+
+`.trim();
+
+
+    try {
+
+        await navigator.clipboard.writeText(
+            html
+        );
+
+
+        showStatus(
+            "Picks copied! Paste them into latest-picks.html.",
+            "success"
+        );
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        showStatus(
+            "Could not copy automatically. Your browser may be blocking clipboard access.",
+            "error"
+        );
+
+    }
+
+}
+
+
+// =====================================
 // FORMAT PERCENTAGE
 // =====================================
 
-function formatPercent(probability) {
+function formatPercent(
+    probability
+) {
 
     return (
         probability * 100
@@ -549,5 +788,21 @@ function showStatus(
 
     statusContainer.className =
         type;
+
+}
+
+
+// =====================================
+// BASIC HTML ESCAPING
+// =====================================
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
