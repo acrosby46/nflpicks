@@ -1,94 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Latest NFL Picks</title>
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+    <link rel="stylesheet" href="style.css">
 </head>
-
-
 <body>
 
+<header class="site-header">
+    <div class="header-inner">
+        <div>
+            <h1>NFL Picks</h1>
+            <p class="subtitle">Latest published picks</p>
+        </div>
 
-<header>
-
-    <h1>
-        NFL Pick Assistant
-    </h1>
-
-    <p>
-        Latest published picks
-    </p>
-
-
-    <nav>
-
-        <a href="index.html">
-            Get Odds
-        </a>
-
-        <a href="latest-picks.html">
-            Latest Picks
-        </a>
-
-    </nav>
-
+        <nav>
+            <a href="index.html">Get Odds</a>
+            <a href="latest-picks.html" class="active">Latest Picks</a>
+        </nav>
+    </div>
 </header>
 
+<main class="container">
 
-<main>
+    <section class="panel">
 
+        <h2>Latest Picks</h2>
 
-    <section id="picks-content">
+        <p class="description">
+            These are the latest manually published NFL picks.
+        </p>
 
+        <div id="picks-content">
 
-        <!--
-        ============================================================
-        REPLACE EVERYTHING INSIDE THIS SECTION WITH THE HTML
-        COPIED FROM THE "Copy Picks for Latest Picks Page" BUTTON.
-        ============================================================
-        -->
-
-
-        <div class="picks-header">
-
-            <h2>
-                Latest NFL Picks
-            </h2>
-
-            <p>
+            <div class="empty-state">
                 No picks have been published yet.
-            </p>
+            </div>
 
         </div>
 
-
     </section>
 
-
 </main>
-
-
-<footer>
-
-    <p>
-        NFL Pick Assistant
-    </p>
-
-</footer>
-
 
 </body>
 </html>

@@ -3,85 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>NFL Pick Assistant</title>
-
+    <title>NFL Picks</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<header>
-    <h1>NFL Pick Assistant</h1>
-    <p>Consensus predictions based on sportsbook moneylines</p>
+<header class="site-header">
+    <div class="header-inner">
+        <div>
+            <h1>NFL Picks</h1>
+            <p class="subtitle">Consensus sportsbook predictions</p>
+        </div>
 
-    <nav>
-        <a href="index.html">Get Odds</a>
-        <a href="latest-picks.html">Latest Picks</a>
-    </nav>
+        <nav>
+            <a href="index.html" class="active">Get Odds</a>
+            <a href="latest-picks.html">Latest Picks</a>
+        </nav>
+    </div>
 </header>
 
+<main class="container">
 
-<main>
+    <section class="panel">
+        <h2>Get Latest Odds</h2>
 
-    <!-- API SETTINGS -->
-    <section class="api-section">
+        <p class="description">
+            Enter your The Odds API key and fetch the latest available NFL odds.
+            The odds are downloaded once and can then be filtered by week without
+            making additional API requests.
+        </p>
 
-        <label for="apiKey">
-            The Odds API Key
-        </label>
-
-        <div class="api-input-row">
-
+        <div class="form-group">
+            <label for="apiKey">The Odds API Key</label>
             <input
                 type="password"
                 id="apiKey"
-                placeholder="Paste your API key here"
+                placeholder="Enter your API key"
+                autocomplete="off"
             >
+        </div>
 
-            <button id="loadOddsButton">
-                Get NFL Odds
+        <button id="getOddsButton" class="primary-button">
+            Get Latest Odds
+        </button>
+
+        <div id="quota" class="quota"></div>
+    </section>
+
+
+    <section class="panel">
+        <h2>Filter by Week</h2>
+
+        <div class="week-controls">
+
+            <div class="form-group">
+                <label for="weekSelect">NFL Week</label>
+
+                <select id="weekSelect">
+                    <option value="1">Week 1</option>
+                    <option value="2">Week 2</option>
+                    <option value="3">Week 3</option>
+                    <option value="4">Week 4</option>
+                    <option value="5">Week 5</option>
+                    <option value="6">Week 6</option>
+                    <option value="7">Week 7</option>
+                    <option value="8">Week 8</option>
+                    <option value="9">Week 9</option>
+                    <option value="10">Week 10</option>
+                    <option value="11">Week 11</option>
+                    <option value="12">Week 12</option>
+                    <option value="13">Week 13</option>
+                    <option value="14">Week 14</option>
+                    <option value="15">Week 15</option>
+                    <option value="16">Week 16</option>
+                    <option value="17">Week 17</option>
+                    <option value="18">Week 18</option>
+                    <option value="wildcard">WildCard</option>
+                    <option value="divisional">Div Rd</option>
+                    <option value="conference">Conf Champ</option>
+                    <option value="pro-bowl">Pro Bowl</option>
+                    <option value="super-bowl">Super Bowl</option>
+                </select>
+            </div>
+
+            <button id="filterWeekButton" class="secondary-button" disabled>
+                Filter by Week
             </button>
 
         </div>
 
-        <p class="small-text">
-            Your API key is only used in your browser for this session.
-        </p>
+        <div id="weekDates" class="week-dates"></div>
+
+        <div id="status" class="status"></div>
+    </section>
+
+
+    <section class="panel results-panel">
+
+        <div class="results-header">
+            <div>
+                <h2 id="resultsTitle">NFL Picks</h2>
+                <p id="resultsSubtitle">
+                    Get the latest odds to begin.
+                </p>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="empty-state">
+                No odds have been loaded yet.
+            </div>
+        </div>
 
     </section>
 
 
-    <!-- STATUS -->
-    <div id="status"></div>
+    <section class="panel copy-section">
 
+        <h2>Publish Picks</h2>
 
-    <!-- COPY PICKS -->
-    <section class="copy-section">
+        <p class="description">
+            Copy the currently displayed picks, then paste the copied HTML into
+            <strong>latest-picks.html</strong> before committing it to GitHub.
+        </p>
 
-        <button id="copyPicksButton" disabled>
+        <button id="copyPicksButton" class="primary-button" disabled>
             Copy Picks for Latest Picks Page
         </button>
 
-        <p class="small-text">
-            Load the odds first, then copy the results for your
-            Latest Picks page.
-        </p>
+        <div id="copyStatus" class="copy-status"></div>
 
     </section>
 
-
-    <!-- RESULTS -->
-    <section id="results"></section>
-
-
 </main>
-
-
-<footer>
-    <p>NFL Pick Assistant</p>
-</footer>
-
 
 <script src="script.js"></script>
 

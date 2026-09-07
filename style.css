@@ -1,7 +1,3 @@
-/* -------------------------
-   GENERAL
-------------------------- */
-
 * {
     box-sizing: border-box;
 }
@@ -9,388 +5,349 @@
 body {
     margin: 0;
     font-family: Arial, Helvetica, sans-serif;
-    background: #f3f4f6;
-    color: #1f2937;
-}
-
-
-/* -------------------------
-   HEADER
-------------------------- */
-
-header {
     background: #111827;
-    color: white;
-    padding: 30px 20px;
-    text-align: center;
+    color: #f3f4f6;
+    line-height: 1.5;
 }
 
-header h1 {
-    margin: 0;
-    font-size: 32px;
+.site-header {
+    background: #1f2937;
+    border-bottom: 1px solid #374151;
 }
 
-header p {
-    margin-top: 10px;
-    color: #d1d5db;
+.header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
 }
 
+h1,
+h2,
+p {
+    margin-top: 0;
+}
 
-/* -------------------------
-   NAVIGATION
-------------------------- */
+h1 {
+    margin-bottom: 2px;
+    font-size: 28px;
+}
+
+h2 {
+    margin-bottom: 10px;
+    font-size: 21px;
+}
+
+.subtitle {
+    margin-bottom: 0;
+    color: #9ca3af;
+    font-size: 14px;
+}
 
 nav {
-    margin-top: 20px;
+    display: flex;
+    gap: 8px;
 }
 
 nav a {
-    display: inline-block;
-    margin: 0 5px;
-    padding: 8px 14px;
-    border-radius: 6px;
-
-    color: white;
-    background: #374151;
-
+    color: #d1d5db;
     text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
 }
 
 nav a:hover {
-    background: #4b5563;
+    background: #374151;
+    color: #fff;
 }
 
-
-/* -------------------------
-   MAIN
-------------------------- */
-
-main {
-    max-width: 1000px;
-    margin: auto;
-    padding: 30px 20px;
+nav a.active {
+    background: #374151;
+    color: #fff;
 }
 
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 25px 20px 50px;
+}
 
-/* -------------------------
-   API SECTION
-------------------------- */
-
-.api-section {
-    background: white;
-    padding: 25px;
+.panel {
+    background: #1f2937;
+    border: 1px solid #374151;
     border-radius: 10px;
+    padding: 22px;
     margin-bottom: 20px;
 }
 
-.api-section label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 10px;
+.description {
+    color: #9ca3af;
+    font-size: 14px;
+    margin-bottom: 20px;
 }
 
-.api-input-row {
+.form-group {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 7px;
 }
 
-.api-input-row input {
-    flex: 1;
+label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #d1d5db;
+}
 
-    padding: 12px;
-
-    font-size: 16px;
-
-    border: 1px solid #d1d5db;
+input,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #111827;
+    color: #f3f4f6;
+    border: 1px solid #4b5563;
     border-radius: 6px;
+    font-size: 15px;
 }
 
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #6b7280;
+}
 
-/* -------------------------
-   BUTTONS
-------------------------- */
+#getOddsButton {
+    margin-top: 16px;
+}
 
 button {
-    padding: 12px 20px;
-
-    font-size: 16px;
-
-    border: none;
+    border: 0;
     border-radius: 6px;
-
-    background: #2563eb;
-    color: white;
-
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    transition: opacity 0.15s ease;
 }
 
 button:hover:not(:disabled) {
-    background: #1d4ed8;
+    opacity: 0.88;
 }
 
 button:disabled {
-    background: #9ca3af;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
-
-/* -------------------------
-   COPY SECTION
-------------------------- */
-
-.copy-section {
-    background: white;
-
-    padding: 25px;
-
-    border-radius: 10px;
-
-    margin-bottom: 30px;
-
-    text-align: center;
+.primary-button {
+    background: #2563eb;
+    color: white;
 }
 
-.copy-section .small-text {
-    margin-bottom: 0;
+.secondary-button {
+    background: #4b5563;
+    color: white;
 }
 
+.week-controls {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+}
 
-/* -------------------------
-   SMALL TEXT
-------------------------- */
+.week-controls .form-group {
+    flex: 1;
+    max-width: 300px;
+}
 
-.small-text {
+.week-dates {
+    margin-top: 12px;
+    color: #9ca3af;
     font-size: 13px;
-    color: #6b7280;
 }
 
-
-/* -------------------------
-   STATUS
-------------------------- */
-
-#status {
-    margin-bottom: 20px;
-    font-weight: bold;
-}
-
-.loading {
-    color: #2563eb;
-}
-
-.error {
-    color: #dc2626;
-}
-
-.success {
-    color: #059669;
-}
-
-
-/* -------------------------
-   GAME CARD
-------------------------- */
-
-.game-card {
-    background: white;
-
-    margin-bottom: 20px;
-
-    padding: 25px;
-
-    border-radius: 10px;
-}
-
-.game-date {
-    text-align: center;
-
-    color: #6b7280;
-
+.status {
+    margin-top: 12px;
     font-size: 14px;
-
-    margin-bottom: 20px;
 }
 
+.status.success {
+    color: #86efac;
+}
 
-/* -------------------------
-   TEAMS
-------------------------- */
+.status.error {
+    color: #fca5a5;
+}
 
-.matchup {
-    display: grid;
+.status.info {
+    color: #93c5fd;
+}
 
-    grid-template-columns: 1fr 80px 1fr;
+.quota {
+    margin-top: 12px;
+    color: #9ca3af;
+    font-size: 13px;
+}
 
+.results-panel {
+    overflow: hidden;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+}
 
+#resultsSubtitle {
+    color: #9ca3af;
+    font-size: 14px;
+    margin-bottom: 18px;
+}
+
+.empty-state {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 30px;
     text-align: center;
-}
-
-.team {
-    padding: 15px;
-}
-
-.team-name {
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.probability {
-    font-size: 32px;
-
-    font-weight: bold;
-
-    margin-top: 10px;
-}
-
-.vs {
-    font-weight: bold;
-
     color: #9ca3af;
 }
 
-
-/* -------------------------
-   RECOMMENDATION
-------------------------- */
-
-.recommendation {
-    margin-top: 25px;
-
-    padding: 15px;
-
-    background: #ecfdf5;
-
-    border-radius: 8px;
-
-    text-align: center;
-}
-
-.recommendation strong {
-    font-size: 20px;
-}
-
-
-/* -------------------------
-   DETAILS
-------------------------- */
-
-.details {
-    margin-top: 20px;
-
-    text-align: center;
-
-    color: #6b7280;
-
-    font-size: 14px;
-}
-
-
-/* -------------------------
-   LATEST PICKS
-------------------------- */
-
-.picks-header {
-    background: white;
-
-    padding: 25px;
-
-    border-radius: 10px;
-
-    margin-bottom: 20px;
-
-    text-align: center;
-}
-
-.picks-header h2 {
-    margin-top: 0;
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
 }
 
 .picks-table {
     width: 100%;
-
     border-collapse: collapse;
-
-    background: white;
-
-    border-radius: 10px;
-
-    overflow: hidden;
-}
-
-.picks-table th,
-.picks-table td {
-    padding: 14px;
-
-    text-align: left;
-
-    border-bottom: 1px solid #e5e7eb;
+    min-width: 650px;
 }
 
 .picks-table th {
-    background: #f9fafb;
-
-    font-weight: bold;
+    background: #111827;
+    color: #9ca3af;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 11px 12px;
+    border-bottom: 1px solid #374151;
 }
 
-.pick-team {
-    font-weight: bold;
+.picks-table td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #374151;
+    vertical-align: middle;
 }
 
-.pick-probability {
-    font-weight: bold;
+.picks-table tr:last-child td {
+    border-bottom: 0;
 }
 
-.last-updated {
-    margin-top: 20px;
+.date-cell {
+    white-space: nowrap;
+    color: #d1d5db;
+    font-size: 13px;
+}
 
-    color: #6b7280;
+.matchup {
+    font-weight: 600;
+}
 
+.pick {
+    font-weight: 700;
+    color: #93c5fd;
+}
+
+.probability {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.bookmaker-count {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.no-games {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 25px;
+    text-align: center;
+}
+
+.no-games strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #f3f4f6;
+}
+
+.no-games p {
+    margin-bottom: 0;
+    color: #9ca3af;
     font-size: 14px;
-
-    text-align: center;
 }
 
-
-/* -------------------------
-   FOOTER
-------------------------- */
-
-footer {
-    text-align: center;
-
-    padding: 30px;
-
-    color: #6b7280;
+.copy-section {
+    margin-bottom: 0;
 }
 
+.copy-status {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #86efac;
+}
 
-/* -------------------------
-   MOBILE
-------------------------- */
+.published-picks {
+    margin: 0;
+}
 
-@media (max-width: 600px) {
+.published-picks h2 {
+    margin-bottom: 5px;
+}
 
-    .api-input-row {
+.published-picks .published-date {
+    color: #9ca3af;
+    font-size: 13px;
+    margin-bottom: 18px;
+}
+
+@media (max-width: 650px) {
+
+    .header-inner {
         flex-direction: column;
+        align-items: flex-start;
     }
 
-    .matchup {
-        grid-template-columns: 1fr;
-
-        gap: 10px;
+    nav {
+        width: 100%;
     }
 
-    .vs {
-        margin: 5px 0;
+    nav a {
+        flex: 1;
+        text-align: center;
     }
 
-    .picks-table {
-        font-size: 14px;
+    .week-controls {
+        flex-direction: column;
+        align-items: stretch;
     }
 
-    .picks-table th,
-    .picks-table td {
-        padding: 10px 7px;
+    .week-controls .form-group {
+        max-width: none;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    .panel {
+        padding: 17px;
     }
 }
