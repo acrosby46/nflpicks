@@ -1,6 +1,9 @@
 const API_URL =
     "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds";
 
+const STORAGE_KEY = "nflPicksOdds";
+const STORAGE_TIMESTAMP_KEY = "nflPicksOddsTimestamp";
+
 let allGames = [];
 let currentPicks = [];
 let oddsLoaded = false;
@@ -8,9 +11,6 @@ let oddsLoaded = false;
 
 /*
  * NFL week date ranges.
- *
- * These are calendar dates, not API queries.
- * They are used only to filter the games returned by the API.
  */
 const NFL_WEEKS = {
     "1": {
@@ -145,7 +145,8 @@ function americanToImpliedProbability(odds) {
         return 100 / (numericOdds + 100);
     }
 
-    return Math.abs(numericOdds) / (Math.abs(numericOdds) + 100);
+    return Math.abs(numericOdds) /
+        (Math.abs(numericOdds) + 100);
 }
 
 
@@ -161,7 +162,10 @@ function median(values) {
     const middle = Math.floor(sorted.length / 2);
 
     if (sorted.length % 2 === 0) {
-        return (sorted[middle - 1] + sorted[middle]) / 2;
+        return (
+            sorted[middle - 1] +
+            sorted[middle]
+        ) / 2;
     }
 
     return sorted[middle];
@@ -170,14 +174,9 @@ function median(values) {
 
 /*
  * Calculate the consensus pick for one game.
- *
- * Each sportsbook's two-way h2h probabilities are normalized
- * to remove the sportsbook's vig.
- *
- * The median probability across sportsbooks is then used as
- * the consensus probability.
  */
 function calculateGamePick(game) {
+
     const teamProbabilities = {};
 
     for (const bookmaker of game.bookmakers || []) {
@@ -233,8 +232,13 @@ function calculateGamePick(game) {
             teamProbabilities[second.name] = [];
         }
 
-        teamProbabilities[first.name].push(normalizedFirst);
-        teamProbabilities[second.name].push(normalizedSecond);
+        teamProbabilities[first.name].push(
+            normalizedFirst
+        );
+
+        teamProbabilities[second.name].push(
+            normalizedSecond
+        );
     }
 
     const teams = Object.keys(teamProbabilities);
@@ -245,11 +249,17 @@ function calculateGamePick(game) {
 
     const consensus = teams.map(team => ({
         team,
-        probability: median(teamProbabilities[team]),
-        bookmakers: teamProbabilities[team].length
+        probability: median(
+            teamProbabilities[team]
+        ),
+        bookmakers:
+            teamProbabilities[team].length
     }));
 
-    consensus.sort((a, b) => b.probability - a.probability);
+    consensus.sort(
+        (a, b) =>
+            b.probability - a.probability
+    );
 
     const winner = consensus[0];
 
@@ -262,12 +272,12 @@ function calculateGamePick(game) {
 
 
 /*
- * Convert an API date/time into an Eastern calendar date.
+ * Get the game's calendar date in Eastern Time.
  *
- * Using Intl with America/New_York handles daylight saving time
- * automatically.
+ * America/New_York automatically handles daylight saving time.
  */
 function dateOnlyInEastern(isoDate) {
+
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/New_York",
         year: "numeric",
@@ -281,6 +291,7 @@ function dateOnlyInEastern(isoDate) {
  * Format a game date/time for display.
  */
 function formatGameDate(isoDate) {
+
     return new Intl.DateTimeFormat("en-US", {
         timeZone: "America/New_York",
         month: "short",
@@ -292,9 +303,10 @@ function formatGameDate(isoDate) {
 
 
 /*
- * Update the date range shown beneath the week selector.
+ * Update the displayed week date range.
  */
 function updateWeekDateDisplay() {
+
     const selectedWeek =
         document.getElementById("weekSelect").value;
 
@@ -304,14 +316,18 @@ function updateWeekDateDisplay() {
         return;
     }
 
-    const start = new Date(`${week.start}T12:00:00`);
-    const end = new Date(`${week.end}T12:00:00`);
+    const start =
+        new Date(`${week.start}T12:00:00`);
 
-    const formatter = new Intl.DateTimeFormat("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric"
-    });
+    const end =
+        new Date(`${week.end}T12:00:00`);
+
+    const formatter =
+        new Intl.DateTimeFormat("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric"
+        });
 
     document.getElementById("weekDates").textContent =
         `${formatter.format(start)} – ${formatter.format(end)}`;
@@ -319,12 +335,143 @@ function updateWeekDateDisplay() {
 
 
 /*
- * Filter the already-downloaded odds by the selected week.
+ * Save the latest API results in localStorage.
+ *
+ * The API key is NOT stored.
+ */
+function saveOddsToStorage(games) {
+
+    try {
+
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(games)
+        );
+
+        localStorage.setItem(
+            STORAGE_TIMESTAMP_KEY,
+            new Date().toISOString()
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Unable to save odds to browser storage:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/*
+ * Load previously saved odds from localStorage.
+ */
+function loadOddsFromStorage() {
+
+    try {
+
+        const storedOdds =
+            localStorage.getItem(STORAGE_KEY);
+
+        if (!storedOdds) {
+            return false;
+        }
+
+        const parsedOdds =
+            JSON.parse(storedOdds);
+
+        if (!Array.isArray(parsedOdds)) {
+            return false;
+        }
+
+        allGames = parsedOdds;
+        oddsLoaded = true;
+
+        document
+            .getElementById("filterWeekButton")
+            .disabled = false;
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Unable to load saved odds:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/*
+ * Return a human-readable description of when
+ * the stored odds were retrieved.
+ */
+function getStoredOddsTimestamp() {
+
+    try {
+
+        const timestamp =
+            localStorage.getItem(
+                STORAGE_TIMESTAMP_KEY
+            );
+
+        if (!timestamp) {
+            return null;
+        }
+
+        return new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/New_York",
+            dateStyle: "long",
+            timeStyle: "short"
+        }).format(new Date(timestamp));
+
+    } catch {
+        return null;
+    }
+}
+
+
+/*
+ * Display the stored odds status.
+ */
+function updateStoredOddsStatus() {
+
+    const statusElement =
+        document.getElementById(
+            "storedOddsStatus"
+        );
+
+    const timestamp =
+        getStoredOddsTimestamp();
+
+    if (!timestamp) {
+
+        statusElement.textContent =
+            "No previously saved odds found.";
+
+        return;
+    }
+
+    statusElement.textContent =
+        `Saved odds available from ${timestamp} ET.`;
+}
+
+
+/*
+ * Filter the downloaded odds by week.
  *
  * IMPORTANT:
- * This function does NOT make an API request.
+ * This does NOT make an API request.
  */
 function filterByWeek() {
+
     if (!oddsLoaded) {
         return;
     }
@@ -345,7 +492,9 @@ function filterByWeek() {
         }
 
         const gameDate =
-            dateOnlyInEastern(game.commence_time);
+            dateOnlyInEastern(
+                game.commence_time
+            );
 
         return (
             gameDate >= week.start &&
@@ -353,7 +502,10 @@ function filterByWeek() {
         );
     });
 
-    renderResults(filteredGames, week);
+    renderResults(
+        filteredGames,
+        week
+    );
 }
 
 
@@ -362,15 +514,23 @@ function filterByWeek() {
  */
 function renderResults(games, week) {
 
-    const results = document.getElementById("results");
+    const results =
+        document.getElementById("results");
+
     const resultsTitle =
-        document.getElementById("resultsTitle");
+        document.getElementById(
+            "resultsTitle"
+        );
+
     const resultsSubtitle =
-        document.getElementById("resultsSubtitle");
+        document.getElementById(
+            "resultsSubtitle"
+        );
 
     currentPicks = [];
 
-    resultsTitle.textContent = `${week.name} Picks`;
+    resultsTitle.textContent =
+        `${week.name} Picks`;
 
     resultsSubtitle.textContent =
         `${week.start} through ${week.end}`;
@@ -379,17 +539,23 @@ function renderResults(games, week) {
 
         results.innerHTML = `
             <div class="no-games">
-                <strong>No games currently available for ${week.name}.</strong>
+                <strong>
+                    No games currently available for ${week.name}.
+                </strong>
+
                 <p>
-                    The Odds API has not returned any NFL games in this
-                    week's date range. This is normal for weeks that have
-                    not yet been posted by sportsbooks, or for completed
-                    games that are no longer available from the odds endpoint.
+                    The Odds API has not returned any NFL games
+                    in this week's date range.
                 </p>
             </div>
         `;
 
-        document.getElementById("copyPicksButton").disabled = true;
+        document
+            .getElementById(
+                "copyPicksButton"
+            )
+            .disabled = true;
+
         return;
     }
 
@@ -409,21 +575,30 @@ function renderResults(games, week) {
 
         results.innerHTML = `
             <div class="no-games">
-                <strong>Games were found, but no usable h2h odds were available.</strong>
+                <strong>
+                    Games were found, but no usable h2h odds were available.
+                </strong>
+
                 <p>
                     Try fetching the latest odds again later.
                 </p>
             </div>
         `;
 
-        document.getElementById("copyPicksButton").disabled = true;
+        document
+            .getElementById(
+                "copyPicksButton"
+            )
+            .disabled = true;
+
         return;
     }
 
-    currentPicks = gamesWithPicks.map(item => ({
-        game: item.game,
-        pick: item.pick
-    }));
+    currentPicks =
+        gamesWithPicks.map(item => ({
+            game: item.game,
+            pick: item.pick
+        }));
 
     let html = `
         <div class="table-wrap">
@@ -437,6 +612,7 @@ function renderResults(games, week) {
                         <th>Sportsbooks</th>
                     </tr>
                 </thead>
+
                 <tbody>
     `;
 
@@ -445,17 +621,16 @@ function renderResults(games, week) {
         const game = item.game;
         const pick = item.pick;
 
-        const awayTeam = game.away_team;
-        const homeTeam = game.home_team;
-
         html += `
             <tr>
                 <td class="date-cell">
-                    ${formatGameDate(game.commence_time)}
+                    ${formatGameDate(
+                        game.commence_time
+                    )}
                 </td>
 
                 <td class="matchup">
-                    ${awayTeam} @ ${homeTeam}
+                    ${game.away_team} @ ${game.home_team}
                 </td>
 
                 <td class="pick">
@@ -481,7 +656,11 @@ function renderResults(games, week) {
 
     results.innerHTML = html;
 
-    document.getElementById("copyPicksButton").disabled = false;
+    document
+        .getElementById(
+            "copyPicksButton"
+        )
+        .disabled = false;
 }
 
 
@@ -493,56 +672,79 @@ function renderResults(games, week) {
 async function getOdds() {
 
     const apiKey =
-        document.getElementById("apiKey").value.trim();
+        document.getElementById(
+            "apiKey"
+        ).value.trim();
 
     const button =
-        document.getElementById("getOddsButton");
+        document.getElementById(
+            "getOddsButton"
+        );
 
     const status =
-        document.getElementById("status");
+        document.getElementById(
+            "status"
+        );
 
     const quota =
-        document.getElementById("quota");
+        document.getElementById(
+            "quota"
+        );
 
     if (!apiKey) {
+
         status.textContent =
             "Please enter your The Odds API key.";
 
-        status.className = "status error";
+        status.className =
+            "status error";
+
         return;
     }
 
     button.disabled = true;
-    button.textContent = "Getting Odds...";
+    button.textContent =
+        "Getting Odds...";
 
     status.textContent =
         "Fetching the latest NFL odds...";
 
-    status.className = "status info";
+    status.className =
+        "status info";
 
     quota.textContent = "";
 
     try {
 
-        const params = new URLSearchParams({
-            apiKey: apiKey,
-            regions: "us",
-            markets: "h2h",
-            oddsFormat: "american"
-        });
+        const params =
+            new URLSearchParams({
+                apiKey: apiKey,
+                regions: "us",
+                markets: "h2h",
+                oddsFormat: "american"
+            });
 
         const response =
-            await fetch(`${API_URL}?${params.toString()}`);
+            await fetch(
+                `${API_URL}?${params.toString()}`
+            );
 
         const remaining =
-            response.headers.get("x-requests-remaining");
+            response.headers.get(
+                "x-requests-remaining"
+            );
 
         const used =
-            response.headers.get("x-requests-used");
+            response.headers.get(
+                "x-requests-used"
+            );
 
         if (remaining !== null) {
+
             quota.textContent =
-                `API requests used: ${used ?? "?"} | Remaining: ${remaining}`;
+                `API requests used: ${
+                    used ?? "?"
+                } | Remaining: ${remaining}`;
         }
 
         if (!response.ok) {
@@ -551,11 +753,15 @@ async function getOdds() {
                 `The Odds API returned HTTP ${response.status}.`;
 
             try {
-                const errorData = await response.json();
+
+                const errorData =
+                    await response.json();
 
                 if (errorData.message) {
-                    errorMessage += ` ${errorData.message}`;
+                    errorMessage +=
+                        ` ${errorData.message}`;
                 }
+
             } catch {
                 // Ignore JSON parsing errors.
             }
@@ -563,56 +769,82 @@ async function getOdds() {
             throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!Array.isArray(data)) {
+
             throw new Error(
                 "The API returned an unexpected response."
             );
         }
 
+        /*
+         * Replace the current odds with the new
+         * API response.
+         */
         allGames = data;
         oddsLoaded = true;
 
-        document.getElementById("filterWeekButton").disabled = false;
+        /*
+         * Save the new odds locally.
+         *
+         * This does NOT save the API key.
+         */
+        const saved =
+            saveOddsToStorage(data);
 
-        status.textContent =
-            `Latest odds loaded successfully. ${data.length} game(s) are available.`;
+        document
+            .getElementById(
+                "filterWeekButton"
+            )
+            .disabled = false;
 
-        status.className = "status success";
+        if (saved) {
+
+            updateStoredOddsStatus();
+
+            status.textContent =
+                `Latest odds loaded and saved in your browser. ${
+                    data.length
+                } game(s) are available.`;
+
+        } else {
+
+            status.textContent =
+                `Latest odds loaded. ${
+                    data.length
+                } game(s) are available, but they could not be saved locally.`;
+        }
+
+        status.className =
+            "status success";
 
         /*
-         * Immediately show the currently selected week
-         * using the newly downloaded data.
+         * Immediately display the selected week.
          */
         filterByWeek();
 
     } catch (error) {
 
-        allGames = [];
-        oddsLoaded = false;
-
-        document.getElementById("filterWeekButton").disabled = true;
-        document.getElementById("copyPicksButton").disabled = true;
-
         status.textContent =
-            error.message || "Unable to retrieve NFL odds.";
+            error.message ||
+            "Unable to retrieve NFL odds.";
 
-        status.className = "status error";
+        status.className =
+            "status error";
 
     } finally {
 
         button.disabled = false;
-        button.textContent = "Get Latest Odds";
+        button.textContent =
+            "Get Latest Odds";
     }
 }
 
 
 /*
  * Copy the currently displayed picks as HTML.
- *
- * The copied section can be pasted inside the
- * #picks-content div in latest-picks.html.
  */
 async function copyPicks() {
 
@@ -621,20 +853,27 @@ async function copyPicks() {
     }
 
     const selectedWeek =
-        document.getElementById("weekSelect").value;
+        document.getElementById(
+            "weekSelect"
+        ).value;
 
-    const week = NFL_WEEKS[selectedWeek];
+    const week =
+        NFL_WEEKS[selectedWeek];
 
     const publishedAt =
-        new Date().toLocaleString("en-US", {
-            timeZone: "America/New_York",
-            dateStyle: "long",
-            timeStyle: "short"
-        });
+        new Date().toLocaleString(
+            "en-US",
+            {
+                timeZone: "America/New_York",
+                dateStyle: "long",
+                timeStyle: "short"
+            }
+        );
 
     let html = `
 <section class="published-picks">
     <h2>${week.name}</h2>
+
     <p class="published-date">
         Picks generated ${publishedAt} ET
     </p>
@@ -650,6 +889,7 @@ async function copyPicks() {
                     <th>Sportsbooks</th>
                 </tr>
             </thead>
+
             <tbody>
 `;
 
@@ -661,7 +901,9 @@ async function copyPicks() {
         html += `
                 <tr>
                     <td class="date-cell">
-                        ${formatGameDate(game.commence_time)}
+                        ${formatGameDate(
+                            game.commence_time
+                        )}
                     </td>
 
                     <td class="matchup">
@@ -692,42 +934,114 @@ async function copyPicks() {
 
     try {
 
-        await navigator.clipboard.writeText(html);
+        await navigator.clipboard.writeText(
+            html
+        );
 
-        document.getElementById("copyStatus").textContent =
-            "Copied! Paste this HTML inside the #picks-content section of latest-picks.html.";
+        document
+            .getElementById(
+                "copyStatus"
+            )
+            .textContent =
+                "Copied! Paste this HTML inside the #picks-content section of latest-picks.html.";
 
-    } catch (error) {
+    } catch {
 
-        document.getElementById("copyStatus").textContent =
-            "Unable to copy automatically. Your browser may be blocking clipboard access.";
-
+        document
+            .getElementById(
+                "copyStatus"
+            )
+            .textContent =
+                "Unable to copy automatically. Your browser may be blocking clipboard access.";
     }
 }
 
 
 /*
- * Event handlers
+ * Restore previously downloaded odds when
+ * index.html is opened.
  */
+function initializeStoredOdds() {
 
-document
-    .getElementById("getOddsButton")
-    .addEventListener("click", getOdds);
+    const loaded =
+        loadOddsFromStorage();
 
-document
-    .getElementById("filterWeekButton")
-    .addEventListener("click", filterByWeek);
+    updateStoredOddsStatus();
 
-document
-    .getElementById("weekSelect")
-    .addEventListener("change", updateWeekDateDisplay);
+    if (!loaded) {
+        return;
+    }
 
-document
-    .getElementById("copyPicksButton")
-    .addEventListener("click", copyPicks);
+    const timestamp =
+        getStoredOddsTimestamp();
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+    status.textContent =
+        `Previously downloaded odds restored${
+            timestamp
+                ? ` from ${timestamp} ET`
+                : ""
+        }.`;
+
+    status.className =
+        "status success";
+
+    /*
+     * Show the currently selected week
+     * immediately.
+     */
+    filterByWeek();
+}
 
 
 /*
- * Initial UI setup.
+ * Event handlers.
  */
+
+document
+    .getElementById(
+        "getOddsButton"
+    )
+    .addEventListener(
+        "click",
+        getOdds
+    );
+
+document
+    .getElementById(
+        "filterWeekButton"
+    )
+    .addEventListener(
+        "click",
+        filterByWeek
+    );
+
+document
+    .getElementById(
+        "weekSelect"
+    )
+    .addEventListener(
+        "change",
+        updateWeekDateDisplay
+    );
+
+document
+    .getElementById(
+        "copyPicksButton"
+    )
+    .addEventListener(
+        "click",
+        copyPicks
+    );
+
+
+/*
+ * Initial setup.
+ */
+
 updateWeekDateDisplay();
+initializeStoredOdds();
