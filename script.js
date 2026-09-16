@@ -10,8 +10,11 @@ let oddsLoaded = false;
 
 
 /*
- * NFL week date ranges.
- */
+    NFL week date ranges.
+
+    Dates are inclusive and are based on the 2026 NFL season.
+*/
+
 const NFL_WEEKS = {
     "1": {
         name: "Week 1",
@@ -131,28 +134,26 @@ const NFL_WEEKS = {
 };
 
 
-/*
- * Convert American odds to implied probability.
- */
-function americanToImpliedProbability(odds) {
-    const numericOdds = Number(odds);
-
-    if (!Number.isFinite(numericOdds)) {
-        return null;
-    }
-
-    if (numericOdds > 0) {
-        return 100 / (numericOdds + 100);
-    }
-
-    return Math.abs(numericOdds) /
-        (Math.abs(numericOdds) + 100);
+function getElement(id) {
+    return document.getElementById(id);
 }
 
 
 /*
- * Return the median value in an array.
- */
+    Convert American odds to raw implied probability.
+*/
+function americanToImpliedProbability(odds) {
+    if (odds > 0) {
+        return 100 / (odds + 100);
+    }
+
+    return Math.abs(odds) / (Math.abs(odds) + 100);
+}
+
+
+/*
+    Calculate the median of an array.
+*/
 function median(values) {
     if (!values.length) {
         return null;
@@ -162,10 +163,7 @@ function median(values) {
     const middle = Math.floor(sorted.length / 2);
 
     if (sorted.length % 2 === 0) {
-        return (
-            sorted[middle - 1] +
-            sorted[middle]
-        ) / 2;
+        return (sorted[middle - 1] + sorted[middle]) / 2;
     }
 
     return sorted[middle];
@@ -173,73 +171,53 @@ function median(values) {
 
 
 /*
- * Calculate the consensus pick for one game.
- */
-function calculateGamePick(game) {
+    Calculate the consensus winner for a game.
 
+    For every sportsbook:
+    1. Convert both h2h prices to implied probabilities.
+    2. Remove the sportsbook's vig by normalizing the two probabilities.
+    3. Collect the probability for each team.
+    4. Use the median across sportsbooks.
+*/
+function calculateGamePick(game) {
     const teamProbabilities = {};
 
-    for (const bookmaker of game.bookmakers || []) {
-
-        const h2hMarket = (bookmaker.markets || []).find(
-            market => market.key === "h2h"
-        );
-
-        if (!h2hMarket || !h2hMarket.outcomes) {
-            continue;
-        }
-
-        const outcomes = h2hMarket.outcomes;
-
-        if (outcomes.length !== 2) {
-            continue;
-        }
-
-        const first = outcomes[0];
-        const second = outcomes[1];
-
-        const firstProbability =
-            americanToImpliedProbability(first.price);
-
-        const secondProbability =
-            americanToImpliedProbability(second.price);
-
-        if (
-            firstProbability === null ||
-            secondProbability === null
-        ) {
-            continue;
-        }
-
-        const totalProbability =
-            firstProbability + secondProbability;
-
-        if (totalProbability <= 0) {
-            continue;
-        }
-
-        const normalizedFirst =
-            firstProbability / totalProbability;
-
-        const normalizedSecond =
-            secondProbability / totalProbability;
-
-        if (!teamProbabilities[first.name]) {
-            teamProbabilities[first.name] = [];
-        }
-
-        if (!teamProbabilities[second.name]) {
-            teamProbabilities[second.name] = [];
-        }
-
-        teamProbabilities[first.name].push(
-            normalizedFirst
-        );
-
-        teamProbabilities[second.name].push(
-            normalizedSecond
-        );
+    if (!game.bookmakers || !game.bookmakers.length) {
+        return null;
     }
+
+    game.bookmakers.forEach(bookmaker => {
+        const market = bookmaker.markets?.find(
+            marketItem => marketItem.key === "h2h"
+        );
+
+        if (!market || !market.outcomes || market.outcomes.length < 2) {
+            return;
+        }
+
+        const outcomes = market.outcomes;
+
+        const rawProbabilities = outcomes.map(outcome => ({
+            name: outcome.name,
+            probability: americanToImpliedProbability(outcome.price)
+        }));
+
+        const totalProbability = rawProbabilities.reduce(
+            (sum, item) => sum + item.probability,
+            0
+        );
+
+        rawProbabilities.forEach(item => {
+            const normalizedProbability =
+                item.probability / totalProbability;
+
+            if (!teamProbabilities[item.name]) {
+                teamProbabilities[item.name] = [];
+            }
+
+            teamProbabilities[item.name].push(normalizedProbability);
+        });
+    });
 
     const teams = Object.keys(teamProbabilities);
 
@@ -249,100 +227,108 @@ function calculateGamePick(game) {
 
     const consensus = teams.map(team => ({
         team,
-        probability: median(
-            teamProbabilities[team]
-        ),
-        bookmakers:
-            teamProbabilities[team].length
+        probability: median(teamProbabilities[team]),
+        bookmakerCount: teamProbabilities[team].length
     }));
 
-    consensus.sort(
-        (a, b) =>
-            b.probability - a.probability
-    );
+    consensus.sort((a, b) => b.probability - a.probability);
 
     const winner = consensus[0];
+    const loser = consensus[1];
+
+    if (!winner || !loser) {
+        return null;
+    }
 
     return {
-        winner: winner.team,
+        id: game.id,
+        commenceTime: game.commence_time,
+        homeTeam: game.home_team,
+        awayTeam: game.away_team,
+        pick: winner.team,
         probability: winner.probability,
-        bookmakers: winner.bookmakers
+        probabilityPercent: winner.probability * 100,
+        opposingProbability: loser.probability,
+        bookmakerCount: winner.bookmakerCount
     };
 }
 
 
 /*
- * Get the game's calendar date in Eastern Time.
- *
- * America/New_York automatically handles daylight saving time.
- */
-function dateOnlyInEastern(isoDate) {
+    Get the calendar date in Eastern Time.
 
-    return new Intl.DateTimeFormat("en-CA", {
+    This avoids manually assuming either EST or EDT.
+*/
+function dateOnlyInEastern(isoString) {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/New_York",
         year: "numeric",
         month: "2-digit",
         day: "2-digit"
-    }).format(new Date(isoDate));
+    });
+
+    return formatter.format(new Date(isoString));
 }
 
 
 /*
- * Format a game date/time for display.
- */
-function formatGameDate(isoDate) {
-
-    return new Intl.DateTimeFormat("en-US", {
+    Format the game date/time for display.
+*/
+function formatGameDate(isoString) {
+    const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: "America/New_York",
+        weekday: "short",
         month: "short",
         day: "numeric",
         hour: "numeric",
         minute: "2-digit"
-    }).format(new Date(isoDate));
+    });
+
+    return formatter.format(new Date(isoString)) + " ET";
 }
 
 
 /*
- * Update the displayed week date range.
- */
+    Update the displayed date range when the week changes.
+*/
 function updateWeekDateDisplay() {
+    const select = getElement("weekSelect");
+    const weekDates = getElement("weekDates");
 
-    const selectedWeek =
-        document.getElementById("weekSelect").value;
-
-    const week = NFL_WEEKS[selectedWeek];
-
-    if (!week) {
+    if (!select || !weekDates) {
         return;
     }
 
-    const start =
-        new Date(`${week.start}T12:00:00`);
+    const week = NFL_WEEKS[select.value];
 
-    const end =
-        new Date(`${week.end}T12:00:00`);
+    if (!week) {
+        weekDates.textContent = "";
+        return;
+    }
 
-    const formatter =
-        new Intl.DateTimeFormat("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric"
-        });
+    weekDates.textContent =
+        `${week.name}: ${formatDateOnly(week.start)} – ${formatDateOnly(week.end)}`;
+}
 
-    document.getElementById("weekDates").textContent =
-        `${formatter.format(start)} – ${formatter.format(end)}`;
+
+function formatDateOnly(dateString) {
+    const date = new Date(dateString + "T12:00:00");
+
+    return new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+    }).format(date);
 }
 
 
 /*
- * Save the latest API results in localStorage.
- *
- * The API key is NOT stored.
- */
+    Save the downloaded odds in localStorage.
+
+    The API key is NEVER stored.
+*/
 function saveOddsToStorage(games) {
-
     try {
-
         localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify(games)
@@ -354,35 +340,25 @@ function saveOddsToStorage(games) {
         );
 
         return true;
-
     } catch (error) {
-
-        console.error(
-            "Unable to save odds to browser storage:",
-            error
-        );
-
+        console.error("Could not save odds:", error);
         return false;
     }
 }
 
 
 /*
- * Load previously saved odds from localStorage.
- */
+    Restore previously downloaded odds.
+*/
 function loadOddsFromStorage() {
-
     try {
-
-        const storedOdds =
-            localStorage.getItem(STORAGE_KEY);
+        const storedOdds = localStorage.getItem(STORAGE_KEY);
 
         if (!storedOdds) {
             return false;
         }
 
-        const parsedOdds =
-            JSON.parse(storedOdds);
+        const parsedOdds = JSON.parse(storedOdds);
 
         if (!Array.isArray(parsedOdds)) {
             return false;
@@ -391,110 +367,122 @@ function loadOddsFromStorage() {
         allGames = parsedOdds;
         oddsLoaded = true;
 
-        document
-            .getElementById("filterWeekButton")
-            .disabled = false;
-
         return true;
 
     } catch (error) {
-
-        console.error(
-            "Unable to load saved odds:",
-            error
-        );
-
+        console.error("Could not load stored odds:", error);
         return false;
     }
 }
 
 
 /*
- * Return a human-readable description of when
- * the stored odds were retrieved.
- */
+    Get the timestamp for previously downloaded odds.
+*/
 function getStoredOddsTimestamp() {
-
     try {
-
-        const timestamp =
-            localStorage.getItem(
-                STORAGE_TIMESTAMP_KEY
-            );
-
-        if (!timestamp) {
-            return null;
-        }
-
-        return new Intl.DateTimeFormat("en-US", {
-            timeZone: "America/New_York",
-            dateStyle: "long",
-            timeStyle: "short"
-        }).format(new Date(timestamp));
-
-    } catch {
+        return localStorage.getItem(STORAGE_TIMESTAMP_KEY);
+    } catch (error) {
         return null;
     }
 }
 
 
 /*
- * Display the stored odds status.
- */
+    Show when stored odds were downloaded.
+*/
 function updateStoredOddsStatus() {
+    const element = getElement("storedOddsStatus");
 
-    const statusElement =
-        document.getElementById(
-            "storedOddsStatus"
-        );
-
-    const timestamp =
-        getStoredOddsTimestamp();
-
-    if (!timestamp) {
-
-        statusElement.textContent =
-            "No previously saved odds found.";
-
+    if (!element) {
         return;
     }
 
-    statusElement.textContent =
-        `Saved odds available from ${timestamp} ET.`;
+    const timestamp = getStoredOddsTimestamp();
+
+    if (!timestamp) {
+        element.textContent = "";
+        return;
+    }
+
+    const date = new Date(timestamp);
+
+    const formatted = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+    }).format(date);
+
+    element.textContent =
+        `Previously downloaded odds restored from ${formatted} ET.`;
 }
 
 
 /*
- * Filter the downloaded odds by week.
- *
- * IMPORTANT:
- * This does NOT make an API request.
- */
-function filterByWeek() {
+    Assign confidence points purely by win probability.
 
-    if (!oddsLoaded) {
+    Highest probability gets 16.
+    Lowest probability gets 1.
+
+    Every game receives a unique point value.
+*/
+function assignConfidencePoints(picks) {
+    const sortedPicks = [...picks].sort((a, b) => {
+        if (b.probability !== a.probability) {
+            return b.probability - a.probability;
+        }
+
+        /*
+            If two probabilities are exactly equal, use game ID
+            simply to provide a deterministic tie-breaker.
+        */
+        return String(a.id).localeCompare(String(b.id));
+    });
+
+    const totalGames = sortedPicks.length;
+
+    sortedPicks.forEach((pick, index) => {
+        pick.confidencePoints = totalGames - index;
+    });
+
+    return sortedPicks;
+}
+
+
+/*
+    Filter the stored odds by the selected NFL week.
+*/
+function filterByWeek() {
+    const select = getElement("weekSelect");
+    const status = getElement("status");
+    const filterButton = getElement("filterWeekButton");
+
+    if (!select) {
         return;
     }
 
-    const selectedWeek =
-        document.getElementById("weekSelect").value;
-
-    const week = NFL_WEEKS[selectedWeek];
+    const week = NFL_WEEKS[select.value];
 
     if (!week) {
         return;
     }
 
-    const filteredGames = allGames.filter(game => {
+    if (!oddsLoaded) {
+        currentPicks = [];
 
-        if (!game.commence_time) {
-            return false;
+        if (filterButton) {
+            filterButton.disabled = true;
         }
 
-        const gameDate =
-            dateOnlyInEastern(
-                game.commence_time
-            );
+        renderResults();
+        return;
+    }
+
+    const weekGames = allGames.filter(game => {
+        const gameDate = dateOnlyInEastern(game.commence_time);
 
         return (
             gameDate >= week.start &&
@@ -502,469 +490,404 @@ function filterByWeek() {
         );
     });
 
-    renderResults(
-        filteredGames,
-        week
-    );
+    const calculatedPicks = weekGames
+        .map(game => calculateGamePick(game))
+        .filter(pick => pick !== null);
+
+    currentPicks = assignConfidencePoints(calculatedPicks);
+
+    if (filterButton) {
+        filterButton.disabled = false;
+    }
+
+    if (status) {
+        status.className = "status success";
+        status.textContent =
+            `${week.name}: ${currentPicks.length} game(s) found.`;
+    }
+
+    renderResults();
 }
 
 
 /*
- * Render the selected week's picks.
- */
-function renderResults(games, week) {
+    Render the results table.
+*/
+function renderResults() {
+    const results = getElement("results");
+    const resultsTitle = getElement("resultsTitle");
+    const resultsSubtitle = getElement("resultsSubtitle");
+    const copyButton = getElement("copyPicksButton");
 
-    const results =
-        document.getElementById("results");
+    if (!results) {
+        return;
+    }
 
-    const resultsTitle =
-        document.getElementById(
-            "resultsTitle"
-        );
-
-    const resultsSubtitle =
-        document.getElementById(
-            "resultsSubtitle"
-        );
-
-    currentPicks = [];
-
-    resultsTitle.textContent =
-        `${week.name} Picks`;
-
-    resultsSubtitle.textContent =
-        `${week.start} through ${week.end}`;
-
-    if (!games.length) {
-
+    if (!oddsLoaded) {
         results.innerHTML = `
-            <div class="no-games">
-                <strong>
-                    No games currently available for ${week.name}.
-                </strong>
-
-                <p>
-                    The Odds API has not returned any NFL games
-                    in this week's date range.
-                </p>
+            <div class="empty-state">
+                No odds have been loaded yet.
             </div>
         `;
 
-        document
-            .getElementById(
-                "copyPicksButton"
-            )
-            .disabled = true;
+        if (copyButton) {
+            copyButton.disabled = true;
+        }
 
         return;
     }
 
-    const gamesWithPicks = games
-        .map(game => ({
-            game,
-            pick: calculateGamePick(game)
-        }))
-        .filter(item => item.pick !== null)
-        .sort(
-            (a, b) =>
-                new Date(a.game.commence_time) -
-                new Date(b.game.commence_time)
-        );
+    const select = getElement("weekSelect");
+    const week = select ? NFL_WEEKS[select.value] : null;
 
-    if (!gamesWithPicks.length) {
+    if (resultsTitle) {
+        resultsTitle.textContent = week
+            ? `${week.name} Picks`
+            : "NFL Picks";
+    }
 
+    if (!currentPicks.length) {
         results.innerHTML = `
             <div class="no-games">
-                <strong>
-                    Games were found, but no usable h2h odds were available.
-                </strong>
-
+                <strong>No games found.</strong>
                 <p>
-                    Try fetching the latest odds again later.
+                    There are no downloaded games matching the selected week.
                 </p>
             </div>
         `;
 
-        document
-            .getElementById(
-                "copyPicksButton"
-            )
-            .disabled = true;
+        if (resultsSubtitle) {
+            resultsSubtitle.textContent =
+                "Try another week or fetch fresh odds.";
+        }
+
+        if (copyButton) {
+            copyButton.disabled = true;
+        }
 
         return;
     }
 
-    currentPicks =
-        gamesWithPicks.map(item => ({
-            game: item.game,
-            pick: item.pick
-        }));
+    if (resultsSubtitle) {
+        resultsSubtitle.textContent =
+            `${currentPicks.length} game(s), ranked by sportsbook win probability.`;
+    }
 
-    let html = `
+    const rows = currentPicks
+        .map(pick => `
+            <tr>
+                <td class="date-cell">
+                    ${escapeHtml(formatGameDate(pick.commenceTime))}
+                </td>
+
+                <td class="matchup">
+                    ${escapeHtml(pick.awayTeam)}
+                    @
+                    ${escapeHtml(pick.homeTeam)}
+                </td>
+
+                <td class="pick">
+                    ${escapeHtml(pick.pick)}
+                </td>
+
+                <td class="probability">
+                    ${pick.probabilityPercent.toFixed(1)}%
+                </td>
+
+                <td class="points">
+                    ${pick.confidencePoints}
+                </td>
+
+                <td class="bookmaker-count">
+                    ${pick.bookmakerCount}
+                </td>
+            </tr>
+        `)
+        .join("");
+
+    results.innerHTML = `
+        <div class="recommendation-note">
+            <strong>Point Assignment Recommendation:</strong>
+            points are assigned purely by win probability.
+            The highest-probability game receives 16 points and the
+            lowest-probability game receives 1 point.
+        </div>
+
         <div class="table-wrap">
             <table class="picks-table">
                 <thead>
                     <tr>
-                        <th>Date / Time</th>
+                        <th>Date</th>
                         <th>Matchup</th>
                         <th>Pick</th>
                         <th>Win Probability</th>
+                        <th>Recommended Points</th>
                         <th>Sportsbooks</th>
                     </tr>
                 </thead>
 
                 <tbody>
-    `;
-
-    for (const item of gamesWithPicks) {
-
-        const game = item.game;
-        const pick = item.pick;
-
-        html += `
-            <tr>
-                <td class="date-cell">
-                    ${formatGameDate(
-                        game.commence_time
-                    )}
-                </td>
-
-                <td class="matchup">
-                    ${game.away_team} @ ${game.home_team}
-                </td>
-
-                <td class="pick">
-                    ${pick.winner}
-                </td>
-
-                <td class="probability">
-                    ${(pick.probability * 100).toFixed(1)}%
-                </td>
-
-                <td class="bookmaker-count">
-                    ${pick.bookmakers}
-                </td>
-            </tr>
-        `;
-    }
-
-    html += `
+                    ${rows}
                 </tbody>
             </table>
         </div>
     `;
 
-    results.innerHTML = html;
-
-    document
-        .getElementById(
-            "copyPicksButton"
-        )
-        .disabled = false;
+    if (copyButton) {
+        copyButton.disabled = false;
+    }
 }
 
 
 /*
- * Fetch the latest available NFL odds.
- *
- * This is the ONLY function that makes an API request.
- */
+    Fetch the latest odds from The Odds API.
+
+    This is the ONLY function that makes an API request.
+*/
 async function getOdds() {
+    const apiKeyElement = getElement("apiKey");
+    const button = getElement("getOddsButton");
+    const status = getElement("status");
+    const quota = getElement("quota");
 
-    const apiKey =
-        document.getElementById(
-            "apiKey"
-        ).value.trim();
+    if (!apiKeyElement) {
+        return;
+    }
 
-    const button =
-        document.getElementById(
-            "getOddsButton"
-        );
-
-    const status =
-        document.getElementById(
-            "status"
-        );
-
-    const quota =
-        document.getElementById(
-            "quota"
-        );
+    const apiKey = apiKeyElement.value.trim();
 
     if (!apiKey) {
-
-        status.textContent =
-            "Please enter your The Odds API key.";
-
-        status.className =
-            "status error";
+        if (status) {
+            status.className = "status error";
+            status.textContent = "Please enter your API key.";
+        }
 
         return;
     }
 
-    button.disabled = true;
-    button.textContent =
-        "Getting Odds...";
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Getting Odds...";
+    }
 
-    status.textContent =
-        "Fetching the latest NFL odds...";
-
-    status.className =
-        "status info";
-
-    quota.textContent = "";
+    if (status) {
+        status.className = "status info";
+        status.textContent = "Fetching latest NFL odds...";
+    }
 
     try {
+        const url =
+            `${API_URL}?apiKey=${encodeURIComponent(apiKey)}` +
+            `&regions=us` +
+            `&markets=h2h` +
+            `&oddsFormat=american`;
 
-        const params =
-            new URLSearchParams({
-                apiKey: apiKey,
-                regions: "us",
-                markets: "h2h",
-                oddsFormat: "american"
-            });
-
-        const response =
-            await fetch(
-                `${API_URL}?${params.toString()}`
-            );
-
-        const remaining =
-            response.headers.get(
-                "x-requests-remaining"
-            );
-
-        const used =
-            response.headers.get(
-                "x-requests-used"
-            );
-
-        if (remaining !== null) {
-
-            quota.textContent =
-                `API requests used: ${
-                    used ?? "?"
-                } | Remaining: ${remaining}`;
-        }
+        const response = await fetch(url);
 
         if (!response.ok) {
-
             let errorMessage =
-                `The Odds API returned HTTP ${response.status}.`;
+                `API request failed with status ${response.status}.`;
 
             try {
-
-                const errorData =
-                    await response.json();
+                const errorData = await response.json();
 
                 if (errorData.message) {
-                    errorMessage +=
-                        ` ${errorData.message}`;
+                    errorMessage = errorData.message;
                 }
-
-            } catch {
-                // Ignore JSON parsing errors.
+            } catch (error) {
+                // Keep the original error message.
             }
 
             throw new Error(errorMessage);
         }
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
         if (!Array.isArray(data)) {
-
-            throw new Error(
-                "The API returned an unexpected response."
-            );
+            throw new Error("The API returned an unexpected response.");
         }
 
-        /*
-         * Replace the current odds with the new
-         * API response.
-         */
         allGames = data;
         oddsLoaded = true;
 
-        /*
-         * Save the new odds locally.
-         *
-         * This does NOT save the API key.
-         */
-        const saved =
-            saveOddsToStorage(data);
+        saveOddsToStorage(allGames);
+        updateStoredOddsStatus();
 
-        document
-            .getElementById(
-                "filterWeekButton"
-            )
-            .disabled = false;
+        if (quota) {
+            const remaining = response.headers.get("x-requests-remaining");
+            const used = response.headers.get("x-requests-used");
 
-        if (saved) {
-
-            updateStoredOddsStatus();
-
-            status.textContent =
-                `Latest odds loaded and saved in your browser. ${
-                    data.length
-                } game(s) are available.`;
-
-        } else {
-
-            status.textContent =
-                `Latest odds loaded. ${
-                    data.length
-                } game(s) are available, but they could not be saved locally.`;
+            if (remaining !== null || used !== null) {
+                quota.textContent =
+                    `API usage: ${used ?? "?"} used, ${remaining ?? "?"} remaining.`;
+            } else {
+                quota.textContent = "";
+            }
         }
 
-        status.className =
-            "status success";
+        if (status) {
+            status.className = "status success";
+            status.textContent =
+                `Successfully downloaded ${allGames.length} NFL game(s).`;
+        }
 
-        /*
-         * Immediately display the selected week.
-         */
+        const filterButton = getElement("filterWeekButton");
+
+        if (filterButton) {
+            filterButton.disabled = false;
+        }
+
         filterByWeek();
 
     } catch (error) {
+        console.error(error);
 
-        status.textContent =
-            error.message ||
-            "Unable to retrieve NFL odds.";
-
-        status.className =
-            "status error";
+        if (status) {
+            status.className = "status error";
+            status.textContent =
+                `Error: ${error.message}`;
+        }
 
     } finally {
-
-        button.disabled = false;
-        button.textContent =
-            "Get Latest Odds";
+        if (button) {
+            button.disabled = false;
+            button.textContent = "Get Latest Odds";
+        }
     }
 }
 
 
 /*
- * Copy the currently displayed picks as HTML.
- */
-async function copyPicks() {
+    Escape HTML before inserting API data into the page.
+*/
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
-    if (!currentPicks.length) {
+
+/*
+    Copy the currently displayed picks as HTML suitable for
+    pasting into latest-picks.html.
+*/
+async function copyPicks() {
+    const copyStatus = getElement("copyStatus");
+    const select = getElement("weekSelect");
+
+    if (!currentPicks.length || !select) {
         return;
     }
 
-    const selectedWeek =
-        document.getElementById(
-            "weekSelect"
-        ).value;
+    const week = NFL_WEEKS[select.value];
 
-    const week =
-        NFL_WEEKS[selectedWeek];
+    if (!week) {
+        return;
+    }
 
-    const publishedAt =
-        new Date().toLocaleString(
-            "en-US",
-            {
-                timeZone: "America/New_York",
-                dateStyle: "long",
-                timeStyle: "short"
-            }
-        );
+    const publishedDate = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+    }).format(new Date());
 
-    let html = `
-<section class="published-picks">
-    <h2>${week.name}</h2>
+    const rows = currentPicks
+        .map(pick => `
+            <tr>
+                <td class="date-cell">
+                    ${escapeHtml(formatGameDate(pick.commenceTime))}
+                </td>
+
+                <td class="matchup">
+                    ${escapeHtml(pick.awayTeam)}
+                    @
+                    ${escapeHtml(pick.homeTeam)}
+                </td>
+
+                <td class="pick">
+                    ${escapeHtml(pick.pick)}
+                </td>
+
+                <td class="probability">
+                    ${pick.probabilityPercent.toFixed(1)}%
+                </td>
+
+                <td class="points">
+                    ${pick.confidencePoints}
+                </td>
+            </tr>
+        `)
+        .join("");
+
+    const html = `
+<div class="published-picks">
+
+    <h2>${escapeHtml(week.name)}</h2>
 
     <p class="published-date">
-        Picks generated ${publishedAt} ET
+        Published ${escapeHtml(publishedDate)} ET
     </p>
+
+    <div class="recommendation-note">
+        <strong>Point Assignment:</strong>
+        Points are assigned purely by win probability.
+        The highest-probability game receives 16 points and the
+        lowest-probability game receives 1 point.
+    </div>
 
     <div class="table-wrap">
         <table class="picks-table">
+
             <thead>
                 <tr>
-                    <th>Date / Time</th>
+                    <th>Date</th>
                     <th>Matchup</th>
                     <th>Pick</th>
                     <th>Win Probability</th>
-                    <th>Sportsbooks</th>
+                    <th>Points</th>
                 </tr>
             </thead>
 
             <tbody>
-`;
-
-    for (const item of currentPicks) {
-
-        const game = item.game;
-        const pick = item.pick;
-
-        html += `
-                <tr>
-                    <td class="date-cell">
-                        ${formatGameDate(
-                            game.commence_time
-                        )}
-                    </td>
-
-                    <td class="matchup">
-                        ${game.away_team} @ ${game.home_team}
-                    </td>
-
-                    <td class="pick">
-                        ${pick.winner}
-                    </td>
-
-                    <td class="probability">
-                        ${(pick.probability * 100).toFixed(1)}%
-                    </td>
-
-                    <td class="bookmaker-count">
-                        ${pick.bookmakers}
-                    </td>
-                </tr>
-`;
-    }
-
-    html += `
+                ${rows}
             </tbody>
+
         </table>
     </div>
-</section>
+
+</div>
 `;
 
     try {
+        await navigator.clipboard.writeText(html);
 
-        await navigator.clipboard.writeText(
-            html
-        );
+        if (copyStatus) {
+            copyStatus.textContent =
+                "Copied! Paste the HTML inside the picks-content section of latest-picks.html.";
+        }
 
-        document
-            .getElementById(
-                "copyStatus"
-            )
-            .textContent =
-                "Copied! Paste this HTML inside the #picks-content section of latest-picks.html.";
+    } catch (error) {
+        console.error("Copy failed:", error);
 
-    } catch {
-
-        document
-            .getElementById(
-                "copyStatus"
-            )
-            .textContent =
-                "Unable to copy automatically. Your browser may be blocking clipboard access.";
+        if (copyStatus) {
+            copyStatus.textContent =
+                "Copy failed. Please try again.";
+        }
     }
 }
 
 
 /*
- * Restore previously downloaded odds when
- * index.html is opened.
- */
+    Restore stored odds when index.html opens.
+*/
 function initializeStoredOdds() {
-
-    const loaded =
-        loadOddsFromStorage();
+    const loaded = loadOddsFromStorage();
 
     updateStoredOddsStatus();
 
@@ -972,76 +895,49 @@ function initializeStoredOdds() {
         return;
     }
 
-    const timestamp =
-        getStoredOddsTimestamp();
+    const filterButton = getElement("filterWeekButton");
 
-    const status =
-        document.getElementById(
-            "status"
-        );
+    if (filterButton) {
+        filterButton.disabled = false;
+    }
 
-    status.textContent =
-        `Previously downloaded odds restored${
-            timestamp
-                ? ` from ${timestamp} ET`
-                : ""
-        }.`;
-
-    status.className =
-        "status success";
-
-    /*
-     * Show the currently selected week
-     * immediately.
-     */
     filterByWeek();
 }
 
 
 /*
- * Event handlers.
- */
+    Event listeners.
+*/
+const getOddsButton = getElement("getOddsButton");
 
-document
-    .getElementById(
-        "getOddsButton"
-    )
-    .addEventListener(
-        "click",
-        getOdds
-    );
+if (getOddsButton) {
+    getOddsButton.addEventListener("click", getOdds);
+}
 
-document
-    .getElementById(
-        "filterWeekButton"
-    )
-    .addEventListener(
-        "click",
-        filterByWeek
-    );
 
-document
-    .getElementById(
-        "weekSelect"
-    )
-    .addEventListener(
-        "change",
-        updateWeekDateDisplay
-    );
+const filterWeekButton = getElement("filterWeekButton");
 
-document
-    .getElementById(
-        "copyPicksButton"
-    )
-    .addEventListener(
-        "click",
-        copyPicks
-    );
+if (filterWeekButton) {
+    filterWeekButton.addEventListener("click", filterByWeek);
+}
+
+
+const weekSelect = getElement("weekSelect");
+
+if (weekSelect) {
+    weekSelect.addEventListener("change", updateWeekDateDisplay);
+}
+
+
+const copyPicksButton = getElement("copyPicksButton");
+
+if (copyPicksButton) {
+    copyPicksButton.addEventListener("click", copyPicks);
+}
 
 
 /*
- * Initial setup.
- */
-
+    Initial page setup.
+*/
 updateWeekDateDisplay();
 initializeStoredOdds();
